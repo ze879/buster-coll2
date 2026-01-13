@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>時間記録</title>
+
+  <style>
+    /* ボタンをグリッドで揃える */
+    .button-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .button-grid button {
+      padding: 10px;
+      font-size: 15px;
+      width: 100%;
+      box-sizing: border-box;
+    }
+
+    /* ボタンエリアを固定 */
+    .button-area {
+      position: sticky;
+      top: 0;
+      background: white;
+      padding: 10px 0;
+      z-index: 10;
+      border-bottom: 2px solid #ddd;
+    }
+
+    /* 記録リストだけスクロール */
+    #list-container {
+      max-height: 350px;
+      overflow-y: auto;
+      border: 1px solid #ccc;
+      padding: 10px;
+      margin-top: 10px;
+    }
+
+    /* 記録を2列で揃える */
+    .record-row {
+      display: grid;
+      grid-template-columns: 1fr 160px auto;
+      gap: 10px;
+      padding: 6px 0;
+      border-bottom: 1px solid #eee;
+      align-items: center;
+    }
+
+    .record-time {
+      text-align: right;
+      font-family: monospace;
+    }
+
+    .delete-btn {
+      padding: 4px 8px;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>時間記録サイト</h1>
+
+  <!-- ボタン固定エリア -->
+  <div class="button-area">
+    <div class="button-grid">
+      <button onclick="recordTime('久辺局前（名護ＢＴ向け）')">久辺局前（名護ＢＴ向け）</button>
+      <button onclick="recordTime('新町入口（名護ＢＴ向け）')">新町入口（名護ＢＴ向け）</button>
+      <button onclick="recordTime('久志入口（名護ＢＴ向け）')">久志入口（名護ＢＴ向け）</button>
+      <button onclick="recordTime('豊原入口（名護ＢＴ向け）')">豊原入口（名護ＢＴ向け）</button>
+      <button onclick="recordTime('辺野古（名護ＢＴ向け）')">辺野古（名護ＢＴ向け）</button>
+      <button onclick="recordTime('沖縄高専入口（名護ＢＴ向け）')">沖縄高専入口（名護ＢＴ向け）</button>
+      <button onclick="recordTime('第二ゲイト（名護ＢＴ向け）')">第二ゲイト（名護ＢＴ向け）</button>
+      <button onclick="recordTime('二見入口（名護ＢＴ向け）')">二見入口（名護ＢＴ向け）</button>
+      <button onclick="recordTime('第二世冨慶（名護バスターミナル向け）')">第二世冨慶（名護バスターミナル向け）</button>
+      <button onclick="recordTime('世冨慶（名護十字路向け）')">世冨慶（名護十字路向け）</button>
+      <button onclick="recordTime('東江入口（名護バスターミナル向け）')">東江入口（名護バスターミナル向け）</button>
+      <button onclick="recordTime('東江（名護バスターミナル向け）')">東江（名護バスターミナル向け）</button>
+    </div>
+
+    <button onclick="resetList()">初期化</button>
+    <button onclick="exportCSV()">CSV出力</button>
+  </div>
+
+  <!-- 記録リスト（スクロール） -->
+  <div id="list-container">
+    <ul id="list"></ul>
+  </div>
+
+  <script>
+    // 時刻を記録（オブジェクト形式で保存）
+    function recordTime(name) {
+      const now = new Date();
+      const timeString = now.toLocaleString();
+
+      const records = JSON.parse(localStorage.getItem("records") || "[]");
+      records.push({ name: name, time: timeString });
+
+      localStorage.setItem("records", JSON.stringify(records));
+      displayTimes();
+    }
+
+    // 記録を表示（2列揃え）
+    function displayTimes() {
+      const list = document.getElementById("list");
+      list.innerHTML = "";
+
+      const records = JSON.parse(localStorage.getItem("records") || "[]");
+
+      records.forEach((record, index) => {
+        const li = document.createElement("li");
+
+        const row = document.createElement("div");
+        row.className = "record-row";
+
+        const nameSpan = document.createElement("span");
+        nameSpan.textContent = record.name;
+
+        const timeSpan = document.createElement("span");
+        timeSpan.textContent = record.time;
+        timeSpan.className = "record-time";
+
+        const deleteBtn = document.createElement("button");
+        deleteBtn.textContent = "削除";
+        deleteBtn.className = "delete-btn";
+        deleteBtn.onclick = function () {
+          records.splice(index, 1);
+          localStorage.setItem("records", JSON.stringify(records));
+          displayTimes();
+        };
+
+        row.appendChild(nameSpan);
+        row.appendChild(timeSpan);
+        row.appendChild(deleteBtn);
+
+        li.appendChild(row);
+        list.appendChild(li);
+      });
+    }
+
+    // 初期化
+    function resetList() {
+      if (confirm("すべての記録を削除しますか？")) {
+        localStorage.removeItem("records");
+        displayTimes();
+      }
+    }
+
+    // CSV出力
+    function exportCSV() {
+      const records = JSON.parse(localStorage.getItem("records") || "[]");
+      if (records.length === 0) {
+        alert("記録がありません");
+        return;
+      }
+
+      let csv = "名前,時刻\n";
+      records.forEach(r => {
+        csv += `"${r.name}","${r.time}"\n`;
+      });
+
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "time_record.csv";
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    // 初期表示
+    displayTimes();
+  </script>
+
+</body>
+</html>
